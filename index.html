@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #text-box, #translation-box {
+            border: 1px solid #ddd;
+            padding: 10px;
+            width: 100%;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background-color: #f9f9f9;
+        }
+        #text-box {
+            height: 300px;
+        }
+        #translation-box {
+            height: 150px;
+            margin-top: 20px;
+        }
+        button {
+            margin-right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #button-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech to Text</h1>
+    <div id="button-container">
+        <button id="start-btn">Start</button>
+        <button id="stop-btn">Stop</button>
+        <button id="translate-hindi">Translate to Hindi</button>
+        <button id="translate-spanish">Translate to Spanish</button>
+        <button id="translate-french">Translate to French</button>
+        <button id="translate-korean">Translate to Korean</button>
+        <button id="refresh-btn">Refresh</button>
+    </div>
+    <div id="text-box"></div>
+    <div id="translation-box"></div>
+
+    <script>
+        let isListening = false;
+
+        document.getElementById('start-btn').onclick = function() {
+            fetch('/start')
+                .then(response => response.json())
+                .then(data => console.log(data.status))
+                .catch(error => console.error('Error:', error));
+            isListening = true;
+            updateText();
+        };
+
+        document.getElementById('stop-btn').onclick = function() {
+            fetch('/stop')
+                .then(response => response.json())
+                .then(data => console.log(data.status))
+                .catch(error => console.error('Error:', error));
+            isListening = false;
+        };
+
+        function updateText() {
+            if (!isListening) return;
+
+            fetch('/text')
+                .then(response => response.json())
+                .then(data => {
+                    const textBox = document.getElementById('text-box');
+                    if (data.text) {
+                        textBox.innerText = data.text; // Replace text box content with accumulated text
+                        textBox.scrollTop = textBox.scrollHeight; // Auto-scroll to the bottom
+                    }
+                    setTimeout(updateText, 100); // Poll every 100ms
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function translateText(lang) {
+            fetch(`/translate/${lang}`)
+                .then(response => response.json())
+                .then(data => {
+                    const translationBox = document.getElementById('translation-box');
+                    if (data.text) {
+                        translationBox.innerText = data.text; // Show translated text
+                    } else if (data.error) {
+                        translationBox.innerText = `Error: ${data.error}`;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.getElementById('translate-hindi').onclick = () => translateText('hi');
+        document.getElementById('translate-spanish').onclick = () => translateText('es');
+        document.getElementById('translate-french').onclick = () => translateText('fr');
+        document.getElementById('translate-korean').onclick = () => translateText('ko');
+
+        document.getElementById('refresh-btn').onclick = function() {
+            fetch('/clear')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('text-box').innerText = '';
+                    document.getElementById('translation-box').innerText = '';
+                })
+                .catch(error => console.error('Error:', error));
+        };
+    </script>
+</body>
+</html>
